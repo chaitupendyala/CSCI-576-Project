@@ -1,0 +1,6 @@
+Useful Links:
+1. Processing Audio: https://www.topcoder.com/thrive/articles/audio-data-analysis-using-python
+
+
+Useful Commands:
+1. Combine mp4 and wav to form a single mkv file: ffmpeg -y -i InputAudio.wav  -r 30 -i InputVideo.mp4  -filter:a aresample=async=1 -c:a flac -c:v copy VideoWithAudio.mkv
