@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # CSCI-576-Project
 
 ### Commands to run the files in create_indexes
