@@ -11,10 +11,11 @@ def split_audio(audio, sr, segment_length=3):
 # Compute audio features
 def compute_features(audio, sr):
     mfccs = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=13)
-    spectral_contrast = librosa.feature.spectral_contrast(y=audio, sr=sr)
-    spectral_centroid = librosa.feature.spectral_centroid(y=audio, sr=sr)
-    zero_crossing_rate = librosa.feature.zero_crossing_rate(y=audio)
-    return np.concatenate([mfccs, spectral_contrast, spectral_centroid, zero_crossing_rate], axis=0)
+    #spectral_contrast = librosa.feature.spectral_contrast(y=audio, sr=sr)
+    #spectral_centroid = librosa.feature.spectral_centroid(y=audio, sr=sr)
+    #zero_crossing_rate = librosa.feature.zero_crossing_rate(y=audio)
+    # return np.concatenate([mfccs, spectral_contrast, spectral_centroid, zero_crossing_rate], axis=0)
+    return np.concatenate([mfccs], axis=0)
 
 # Calculate the difference between consecutive features
 def calculate_feature_diff(features):
