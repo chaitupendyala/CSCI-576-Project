@@ -110,6 +110,25 @@ def read_video_file(file, width, height, num_frames):
     video = video.reshape((num_frames, height, width, 3))
     return video
 
+def save_frames_as_images(video_path, output_folder, width, height):
+    # Create an output folder if it doesn't exist
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    file_size = get_file_size(video_path)
+    num_frames = get_num_frames(file_size, width, height)
+
+    # Read the video file
+    video = read_video_file(video_path, width, height, num_frames)
+
+    # Loop through the frames of the video
+    for frame_index, frame in enumerate(video):
+        # Save the current frame as an image
+        frame_filename = os.path.join(output_folder, f"frame_{frame_index:04d}.png")
+        cv2.imwrite(frame_filename, frame)
+
+    print(f"Saved {num_frames} frames to {output_folder}")
+
 
 # Function to update color histogram plot for a given frame index
 def update_histogram(frame_index, video, num_bins, ax):
@@ -334,6 +353,7 @@ def detect_scene_changes_color_histograms(video, threshold=None):
 
 def main():
     file_path = "../Starter Files/Ready_Player_One_rgb/InputVideo.rgb"
+    output_folder = "../output_images_from_video/frames"
     file_size = get_file_size(file_path)
     # print(file_size)
 
@@ -345,6 +365,8 @@ def main():
     # print(num_frames)
 
     video = read_video_file(file_path, width, height, num_frames)
+    
+    save_frames_as_images(file_path, output_folder, width, height)
 
     extract_color_histograms(video, plot=True)
     extract_texture_descriptors(video, plot=True)
