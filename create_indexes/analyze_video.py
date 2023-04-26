@@ -2,6 +2,7 @@ import os
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
+from matplotlib import gridspec
 from matplotlib.widgets import Slider, Button
 from skimage.feature import graycomatrix, graycoprops
 
@@ -89,10 +90,6 @@ from skimage.feature import graycomatrix, graycoprops
 # similarity score is below the threshold. It returns a list of scene change indices.
 
 
-
-
-
-
 def get_file_size(file_path):
     return os.path.getsize(file_path)
 
@@ -109,6 +106,7 @@ def read_video_file(file, width, height, num_frames):
     video = np.frombuffer(data, dtype=np.uint8)
     video = video.reshape((num_frames, height, width, 3))
     return video
+
 
 def save_frames_as_images(video_path, output_folder, width, height):
     # Create an output folder if it doesn't exist
@@ -131,11 +129,12 @@ def save_frames_as_images(video_path, output_folder, width, height):
 
 
 # Function to update color histogram plot for a given frame index
-def update_histogram(frame_index, video, num_bins, ax):
+def update_histogram(frame_index, video, ax):
     # Get the specified frame and convert it to BGR format
     frame = video[frame_index]
     bgr_frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
     colors = ('b', 'g', 'r')
+    num_bins = 256
 
     # Clear the plot and create a new histogram plot for the current frame
     ax.clear()
@@ -150,48 +149,18 @@ def update_histogram(frame_index, video, num_bins, ax):
     plt.draw()
 
 
-# Function to update the histogram plot when the slider value changes
-def on_slider_change(val, video, num_bins, ax):
-    frame_index = int(val)
-    update_histogram(frame_index, video, num_bins, ax)
-
-
-# Function to update the slider value to the next frame
-def on_next_button_click(event, slider):
-    slider.set_val(min(slider.val + 1, slider.valmax))
-
-
-# Function to update the slider value to the previous frame
-def on_previous_button_click(event, slider):
-    slider.set_val(max(slider.val - 1, slider.valmin))
-
-
 # Main function to extract color histograms and plot them interactively
-def extract_color_histograms(video, num_bins=64, plot=False):
+def extract_color_histograms(video, num_bins=64, plot=False, ax=None):
     if not plot:
         return None
 
     # Create the main plot and slider
     fig, ax = plt.subplots()
     plt.subplots_adjust(bottom=0.25)
-    num_frames = len(video)
-
-    slider_ax = plt.axes([0.15, 0.1, 0.75, 0.03])
-    slider = Slider(slider_ax, 'Frame', 0, num_frames - 1, valinit=0, valstep=1)
-    slider.on_changed(lambda val: update_histogram(val, video, num_bins, ax))
-
-    # Create the next and previous buttons
-    next_button_ax = plt.axes([0.55, 0.05, 0.05, 0.04])
-    next_button = Button(next_button_ax, 'Next')
-    next_button.on_clicked(lambda event: on_next_button_click(event, slider))
-
-    previous_button_ax = plt.axes([0.35, 0.05, 0.05, 0.04])
-    previous_button = Button(previous_button_ax, 'Prev')
-    previous_button.on_clicked(lambda event: on_previous_button_click(event, slider))
 
     # Display initial frame's histogram
     update_histogram(0, video, num_bins, ax)
-    plt.show()
+    # plt.show()
 
 
 # Function to update texture descriptor plot for a given frame index
@@ -229,48 +198,16 @@ def update_texture_plot(frame_index, video, ax):
     plt.draw()
 
 
-# Function to update the texture plot when the slider value changes
-def on_slider_change_texture(val, video, ax):
-    frame_index = int(val)
-    update_texture_plot(frame_index, video, ax)
-
-
-# Function to update the slider value to the previous frame
-def on_next_button_click_texture(event, slider):
-    slider.set_val(min(slider.val + 1, slider.valmax))
-
-
-# Function to update the slider value to the previous frame
-def on_previous_button_click_texture(event, slider):
-    slider.set_val(max(slider.val - 1, slider.valmin))
-
-
 # Main function to extract texture descriptors and plot them interactively
-def extract_texture_descriptors(video, plot=False):
+def extract_texture_descriptors(video, plot=False, ax=None):
     if not plot:
         return None
 
     # Create the main plot and slider
     fig, ax = plt.subplots()
-    plt.subplots_adjust(bottom=0.25)
-    num_frames = len(video)
-
-    slider_ax = plt.axes([0.25, 0.1, 0.50, 0.03])
-    slider = Slider(slider_ax, 'Frame', 0, num_frames - 1, valinit=0, valstep=1)
-    slider.on_changed(lambda val: on_slider_change_texture(val, video, ax))
-
-    # Create the next and previous buttons
-    next_button_ax = plt.axes([0.55, 0.05, 0.05, 0.04])
-    next_button = Button(next_button_ax, 'Next')
-    next_button.on_clicked(lambda event: on_next_button_click_texture(event, slider))
-
-    previous_button_ax = plt.axes([0.35, 0.05, 0.05, 0.04])
-    previous_button = Button(previous_button_ax, 'Prev')
-    previous_button.on_clicked(lambda event: on_previous_button_click_texture(event, slider))
 
     # Display initial frame's texture descriptors
     update_texture_plot(0, video, ax)
-    plt.show()
 
 
 def update_motion_vectors_plot(frame_index, video, ax):
@@ -283,42 +220,15 @@ def update_motion_vectors_plot(frame_index, video, ax):
     ax.set_title(f"Motion Vectors (Optical Flow) for Frame {frame_index + 1}")
 
 
-def on_slider_change_motion(val, video, ax):
-    frame_index = int(val)
-    update_motion_vectors_plot(frame_index, video, ax)
-
-
-def on_next_button_click_motion(event, slider):
-    slider.set_val(min(slider.val + 1, slider.valmax))
-
-
-def on_prev_button_click_motion(event, slider):
-    slider.set_val(max(slider.val - 1, slider.valmin))
-
-
-def extract_motion_vectors(video, plot=False):
+def extract_motion_vectors(video, plot=False, ax=None):
     if not plot:
         return None
 
     fig, ax = plt.subplots()
     plt.subplots_adjust(bottom=0.25)
-    num_frames = len(video)
-
-    slider_ax = plt.axes([0.15, 0.1, 0.75, 0.03])
-    slider = Slider(slider_ax, 'Frame', 1, num_frames - 1, valinit=1, valstep=1)
-    slider.on_changed(lambda val: on_slider_change_motion(val, video, ax))
-
-    next_button_ax = plt.axes([0.55, 0.05, 0.05, 0.04])
-    next_button = Button(next_button_ax, 'Next')
-    next_button.on_clicked(lambda event: on_next_button_click_motion(event, slider))
-
-    previous_button_ax = plt.axes([0.35, 0.05, 0.05, 0.04])
-    previous_button = Button(previous_button_ax, 'Prev')
-    previous_button.on_clicked(lambda event: on_prev_button_click_motion(event, slider))
 
     # Display initial frame's motion vectors
     update_motion_vectors_plot(1, video, ax)
-    plt.show()
 
 
 def compare_histograms(hist1, hist2, method=cv2.HISTCMP_CORREL):
@@ -345,10 +255,75 @@ def detect_scene_changes_color_histograms(video, threshold=None):
     similarities = compute_color_histogram_similarity(video)
 
     if threshold is None:
-        threshold = 0.98
+        threshold = 0.99
 
     scene_changes = [i + 1 for i, sim in enumerate(similarities) if sim < threshold]
     return scene_changes
+
+
+def plot_detected_scene_changes(video, plot=False):
+    if not plot:
+        return None
+
+    plt.figure()
+    plt.plot(range(1, len(video)), compute_color_histogram_similarity(video))
+    plt.axhline(np.mean(compute_color_histogram_similarity(video)), color='r', linestyle='--', label="Threshold")
+    plt.xlabel("Frame Index")
+    plt.ylabel("Color Histogram Similarity")
+    plt.title("Scene Change Detection")
+    plt.legend()
+    plt.show()
+
+
+def on_slider_change(val, update_all):
+    frame_index = int(val)
+    update_all(frame_index)
+
+
+def on_next_button_click(event, slider, update_all, video):
+    frame_index = int(slider.val)
+    if frame_index < len(video) - 1:
+        slider.set_val(frame_index + 1)
+        update_all(frame_index + 1)
+
+
+def on_prev_button_click(event, slider, update_all):
+    frame_index = int(slider.val)
+    if frame_index > 1:
+        slider.set_val(frame_index - 1)
+        update_all(frame_index - 1)
+
+
+def show_plots(video):
+    fig = plt.figure()
+
+    gs = gridspec.GridSpec(2, 2, height_ratios=[1, 1], width_ratios=[2, 1])
+    ax_hist = plt.subplot(gs[0, :])
+    ax_texture = plt.subplot(gs[1, 0])
+    ax_motion = plt.subplot(gs[1, 1])
+
+    num_frames = len(video)
+
+    def update_all(frame_index):
+        update_histogram(frame_index, video, ax_hist)
+        update_texture_plot(frame_index, video, ax_texture)
+        update_motion_vectors_plot(frame_index, video, ax_motion)
+
+    update_all(1)
+
+    slider_ax = plt.axes([0.15, 0.05, 0.75, 0.03])
+    slider = Slider(slider_ax, 'Frame', 1, num_frames - 1, valinit=1, valstep=1)
+    slider.on_changed(lambda val: on_slider_change(val, update_all))
+
+    next_button_ax = plt.axes([0.55, 0.01, 0.05, 0.04])
+    next_button = Button(next_button_ax, 'Next')
+    next_button.on_clicked(lambda event: on_next_button_click(event, slider, update_all, video))
+
+    previous_button_ax = plt.axes([0.35, 0.01, 0.05, 0.04])
+    previous_button = Button(previous_button_ax, 'Prev')
+    previous_button.on_clicked(lambda event: on_prev_button_click(event, slider, update_all))
+
+    plt.show()
 
 
 def main():
@@ -365,27 +340,17 @@ def main():
     # print(num_frames)
 
     video = read_video_file(file_path, width, height, num_frames)
-    
-    save_frames_as_images(file_path, output_folder, width, height)
-
-    extract_color_histograms(video, plot=True)
-    extract_texture_descriptors(video, plot=True)
-    extract_motion_vectors(video, plot=True)
 
     # Detect scene changes using color histograms
     scene_changes = detect_scene_changes_color_histograms(video)
 
     print("Scene changes detected at frames:", scene_changes)
 
+    show_plots(video)
+
+
     # Plot the detected scene changes
-    plt.figure()
-    plt.plot(range(1, len(video)), compute_color_histogram_similarity(video))
-    plt.axhline(np.mean(compute_color_histogram_similarity(video)), color='r', linestyle='--', label="Threshold")
-    plt.xlabel("Frame Index")
-    plt.ylabel("Color Histogram Similarity")
-    plt.title("Scene Change Detection")
-    plt.legend()
-    plt.show()
+    plot_detected_scene_changes(video, plot=True)
 
 
 if __name__ == "__main__":
