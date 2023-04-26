@@ -257,7 +257,17 @@ def detect_scene_changes_color_histograms(video, threshold=None):
     if threshold is None:
         threshold = 0.99
 
-    scene_changes = [i + 1 for i, sim in enumerate(similarities) if sim < threshold]
+    scene_changes = []
+    i = 0
+    while i < len(similarities):
+        sim = similarities[i]
+        if sim < threshold:
+            scene_changes.append(i + 1)
+            # Skip the next frame if it's consecutive
+            if i + 1 < len(similarities) and similarities[i + 1] < threshold:
+                i += 1
+        i += 1
+
     return scene_changes
 
 
