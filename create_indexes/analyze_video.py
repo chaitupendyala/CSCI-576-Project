@@ -337,8 +337,8 @@ def show_plots(video):
 
 
 def main():
-    file_path = "../Starter Files/Ready_Player_One_rgb/InputVideo.rgb"
-    output_folder = "../output_images_from_video/frames"
+    file_path = "../Data_Sets/Ready_Player_One_rgb/InputVideo.rgb"
+    output_folder = "../analysis/frames"
     file_size = get_file_size(file_path)
     # print(file_size)
 
