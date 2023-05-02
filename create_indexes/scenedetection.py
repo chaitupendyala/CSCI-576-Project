@@ -23,7 +23,7 @@ dataset_locations = {
 class SceneDetech:
     def __init__(self, data_set=None) -> None:
         self.data_set = data_set
-    
+
     def run_scene_detection(self):
         if self.data_set == None or self.data_set not in dataset_locations:
             print("Please provide a dataset")
@@ -38,10 +38,10 @@ class SceneDetech:
         scene_change_points = set()
         for scene in scene_changes_content_detector:
             scene_change_points.add(scene)
-        
+
         for scene in scene_changes_adaptive_detector:
             scene_change_points.add(scene)
-        
+
         return list(scene_change_points)
 
 def main():
@@ -50,7 +50,7 @@ def main():
     video_times = sceneDetech.run_scene_detection()
 
     videoSceneDetechController = VideoSceneDetech(video_file_name = dataset_locations[READY_PLAYER_ONE][VIDEO_FILE_MP4])
-    videoSceneDetechController.entropy_difference(video_times)
+    videoSceneDetechController.entropy_difference(window_size=2)
 
 if __name__ == '__main__':
     main()
