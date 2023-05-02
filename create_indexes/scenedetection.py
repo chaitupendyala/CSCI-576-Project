@@ -47,7 +47,10 @@ class SceneDetech:
 def main():
     sceneDetech = SceneDetech(READY_PLAYER_ONE)
 
-    print(sceneDetech.run_scene_detection())
+    video_times = sceneDetech.run_scene_detection()
+
+    videoSceneDetechController = VideoSceneDetech(video_file_name = dataset_locations[READY_PLAYER_ONE][VIDEO_FILE_MP4])
+    videoSceneDetechController.entropy_difference(video_times)
 
 if __name__ == '__main__':
     main()
