@@ -8,7 +8,6 @@ from PyQt6.QtGui import QIcon,QPalette
 
 # from scenedetection import SceneDetech
 
-
 # Issues to address:
 # 1. Not playing audio but only video with mp4
 
