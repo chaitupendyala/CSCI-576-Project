@@ -17,7 +17,7 @@ class VideoSceneDetech:
         scene_change_points = []
         for scene in scenes:
             scene_change_points.append(scene[1].get_timecode())
-        
+
         return scene_change_points
 
     def detech_scene_change_using_content_detector(self):
@@ -33,6 +33,11 @@ class VideoSceneDetech:
     def add_seconds_to_time_object(time_object, seconds):
         new_time_object = time_object + timedelta(seconds= seconds)
         return new_time_object.strftime('%H:%M:%S.%f')[:-3]
+
+    @staticmethod
+    def convert_to_seconds(timestamp):
+        hours, minutes, seconds = map(float, timestamp.split(':'))
+        return hours * 3600 + minutes * 60 + seconds
 
     # Extract video frames within the given time window
     def video_frames_in_time_window(self, video_file, start_time, end_time):
@@ -92,22 +97,19 @@ class VideoSceneDetech:
 
         return similarities
 
-    # Calculate the entropy difference between consecutive time windows in the video
 
-    def entropy_difference(self, window_size=2):
+    # Calculate the entropy difference between time windows before and after the given timestamp
+    def entropy_difference(self, timestamps, window_size=2):
         video = cv2.VideoCapture(self.video_file_name)
-        fps = int(video.get(cv2.CAP_PROP_FPS))
-        total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-        video_duration = total_frames / fps
-        num_windows = int(video_duration / window_size)
 
-        # Loop through all pairs of consecutive time windows
-        for i in range(num_windows - 1):
+        # Loop through the provided timestamps
+        for timestamp in timestamps:
             # Define time windows
-            start_time1 = i * window_size
-            end_time1 = start_time1 + window_size
-            start_time2 = end_time1
-            end_time2 = start_time2 + window_size
+            current_time = self.convert_to_seconds(timestamp)
+            start_time1 = current_time - window_size
+            end_time1 = current_time
+            start_time2 = current_time
+            end_time2 = current_time + window_size
 
             # Get video frames for each time window
             video_window1 = self.video_frames_in_time_window(self.video_file_name, start_time1, end_time1)
@@ -128,9 +130,11 @@ class VideoSceneDetech:
             # Calculate the entropy difference between the two time windows
             entropy_diff = abs(entropy_window1 - entropy_window2)
 
-            print(f"Time Window 1: {start_time1} - {end_time1}")
+            # Print results for debugging purposes
+            print(f"Timestamp: {timestamp}")
+            print(f"Time Window 1: {start_time1:.2f} - {end_time1:.2f}")
             print(f"Similarities Window 1: {similarities_window1}")
-            print(f"Time Window 2: {start_time2} - {end_time2}")
+            print(f"Time Window 2: {start_time2:.2f} - {end_time2:.2f}")
             print(f"Similarities Window 2: {similarities_window2}")
-            print(f"Entropy Difference: {entropy_diff}")
+            print(f"Entropy Difference: {entropy_diff:.4f}")
             print("---------------------------------------------------------")
