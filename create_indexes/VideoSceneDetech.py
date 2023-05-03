@@ -5,9 +5,6 @@ import cv2
 import math
 from datetime import datetime, timedelta
 
-
-
-
 class VideoSceneDetech:
     def __init__(self, video_file_name=None):
         self.video_file_name = video_file_name
@@ -51,12 +48,12 @@ class VideoSceneDetech:
         frames = []
 
         # Print some useful information
-        print(f"FPS: {fps}")
-        print(f"Total Frames: {total_frames}")
-        print(f"Start Frame: {start_frame}")
-        print(f"End Frame: {end_frame}")
-        print(f"Start Time: {start_time}")
-        print(f"End Time: {end_time}")
+        # print(f"FPS: {fps}")
+        # print(f"Total Frames: {total_frames}")
+        # print(f"Start Frame: {start_frame}")
+        # print(f"End Frame: {end_frame}")
+        # print(f"Start Time: {start_time}")
+        # print(f"End Time: {end_time}")
 
         # Read frames from the video and append them to frames list
 
@@ -102,6 +99,8 @@ class VideoSceneDetech:
     def entropy_difference(self, timestamps, window_size=2):
         video = cv2.VideoCapture(self.video_file_name)
 
+        entropy_differences = []
+
         # Loop through the provided timestamps
         for timestamp in timestamps:
             # Define time windows
@@ -130,11 +129,15 @@ class VideoSceneDetech:
             # Calculate the entropy difference between the two time windows
             entropy_diff = abs(entropy_window1 - entropy_window2)
 
+            entropy_differences.append(entropy_diff)
+
             # Print results for debugging purposes
-            print(f"Timestamp: {timestamp}")
-            print(f"Time Window 1: {start_time1:.2f} - {end_time1:.2f}")
-            print(f"Similarities Window 1: {similarities_window1}")
-            print(f"Time Window 2: {start_time2:.2f} - {end_time2:.2f}")
-            print(f"Similarities Window 2: {similarities_window2}")
-            print(f"Entropy Difference: {entropy_diff:.4f}")
-            print("---------------------------------------------------------")
+            # print(f"Timestamp: {timestamp}")
+            # print(f"Time Window 1: {start_time1:.2f} - {end_time1:.2f}")
+            # print(f"Similarities Window 1: {similarities_window1}")
+            # print(f"Time Window 2: {start_time2:.2f} - {end_time2:.2f}")
+            # print(f"Similarities Window 2: {similarities_window2}")
+            # print(f"Entropy Difference: {entropy_diff:.4f}")
+            # print("---------------------------------------------------------")
+        
+        return entropy_differences
