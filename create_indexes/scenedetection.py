@@ -70,6 +70,9 @@ class SceneDetech:
 
         scene_change_points = sorted(list(scene_change_points))
 
+        # Filter nearby timestamps
+        scene_change_points = self.videoSceneDetech.filter_nearby_timestamps(scene_change_points)
+
         audio_entropies = self.audioSceneDetect.compute_audio_entropies(scene_change_points)
 
         video_entropies = self.compute_video_entropies(video_change_times=scene_change_points)
