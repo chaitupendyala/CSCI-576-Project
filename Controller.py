@@ -15,6 +15,7 @@ class Controller:
     def run_scene_detect(self, file_location):
         scene_detect = SceneDetech(file_location=file_location)
         shots = scene_detect.run_scene_detection()
+        print(shots)
         return shots
     
     def file_name_received(self):
