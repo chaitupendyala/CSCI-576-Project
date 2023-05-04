@@ -1,6 +1,6 @@
-from AudioSceneDetech import AudioSceneDetech
-from VideoSceneDetech import VideoSceneDetech
-from constants import *
+from .AudioSceneDetech import AudioSceneDetech
+from .VideoSceneDetech import VideoSceneDetech
+from .constants import *
 import numpy as np
 
 dataset_locations = {
@@ -23,8 +23,9 @@ dataset_locations = {
 
 
 class SceneDetech:
-    def __init__(self, data_set=None) -> None:
+    def __init__(self, data_set=None, file_location=None) -> None:
         self.data_set = data_set
+        self.file_location = file_location
         self.videoSceneDetech = None
         self.audioSceneDetect = None
 
@@ -45,12 +46,17 @@ class SceneDetech:
 
 
     def run_scene_detection(self):
-        if self.data_set == None or self.data_set not in dataset_locations:
+        if self.file_location == None and (self.data_set == None or self.data_set not in dataset_locations):
             print("Please provide a dataset")
             return
-
-        self.videoSceneDetech = VideoSceneDetech(video_file_name=dataset_locations[self.data_set][VIDEO_FILE_MP4])
-        self.audioSceneDetect = AudioSceneDetech(dataset_locations[self.data_set][AUDIO_FILE])
+        
+        if self.file_location != None:
+            self.videoSceneDetech = VideoSceneDetech(video_file_name=self.file_location)
+            self.audioSceneDetect = AudioSceneDetech(self.file_location)
+        
+        else:
+            self.videoSceneDetech = VideoSceneDetech(video_file_name=dataset_locations[self.data_set][VIDEO_FILE_MP4])
+            self.audioSceneDetect = AudioSceneDetech(dataset_locations[self.data_set][AUDIO_FILE])
 
         scene_changes_content_detector = self.videoSceneDetech.detech_scene_change_using_content_detector()
         scene_changes_adaptive_detector = self.videoSceneDetech.detech_scene_change_using_adaptive_detector()
@@ -68,9 +74,9 @@ class SceneDetech:
 
         video_entropies = self.compute_video_entropies(video_change_times=scene_change_points)
 
-        video_threshold_scene, video_threshold_shot = self.compute_scene_shot_subshot_thresholds(video_entropies)
+        video_threshold_scene, video_threshold_shot = self.compute_scene_shot_subshot_thresholds(video_entropies, scene_std_multiplier=1, shot_std_multiplier=0.7)
 
-        # audio_threshold_scene, audio_threshold_shot = self.compute_scene_shot_subshot_thresholds(audio_entropies, scene_percentile=70, shot_percentile=10)
+        audio_threshold_scene, audio_threshold_shot = self.compute_scene_shot_subshot_thresholds(audio_entropies, scene_std_multiplier=.5, shot_std_multiplier=.1)
 
         shots = {"SCENES": ['00:00:00.000'], "SHOTS": [], "SUBSHOTS": []}
 
