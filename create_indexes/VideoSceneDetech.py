@@ -10,7 +10,7 @@ class VideoSceneDetech:
         self.video_file_name = video_file_name
 
     def _detech_scene_change_using_detector(self, detector):
-        scenes = detect(self.video_file_name, detector())
+        scenes = detect(self.video_file_name, detector)
         scene_change_points = []
         for scene in scenes:
             scene_change_points.append(scene[1].get_timecode())
@@ -18,13 +18,13 @@ class VideoSceneDetech:
         return scene_change_points
 
     def detech_scene_change_using_content_detector(self):
-        return self._detech_scene_change_using_detector(ContentDetector)
+        return self._detech_scene_change_using_detector(ContentDetector())
 
     def detech_scene_change_using_threshold_detector(self):
-        return self._detech_scene_change_using_detector(ThresholdDetector)
+        return self._detech_scene_change_using_detector(ThresholdDetector())
 
     def detech_scene_change_using_adaptive_detector(self):
-        return self._detech_scene_change_using_detector(AdaptiveDetector)
+        return self._detech_scene_change_using_detector(AdaptiveDetector(min_scene_len=2))
 
     @staticmethod
     def add_seconds_to_time_object(time_object, seconds):
