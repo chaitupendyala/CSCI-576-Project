@@ -70,7 +70,7 @@ class SceneDetech:
 
         audio_threshold_scene, audio_threshold_shot = self.compute_scene_shot_subshot_thresholds(audio_entropies, scene_percentile=50, shot_percentile=20)
 
-        shots = {"SCENES": [], "SHOTS": [], "SUBSHOTS": []}
+        shots = {"SCENES": ['00:00:00.000'], "SHOTS": [], "SUBSHOTS": []}
 
         for i in range(len(video_entropies)):
             current_audio_entropy = audio_entropies[i]
