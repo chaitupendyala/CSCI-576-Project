@@ -1,22 +1,22 @@
 import sys
-from PyQt6.QtWidgets import ( QApplication,QWidget, QMainWindow, QVBoxLayout, QPushButton, 
+from PyQt5.QtWidgets import ( QApplication,QWidget, QMainWindow, QVBoxLayout, QPushButton, 
                              QSlider, QHBoxLayout, QLabel, QStyle, QSizePolicy, QFileDialog, QListWidget,QComboBox)
-from PyQt6.QtMultimedia import QMediaPlayer
-from PyQt6.QtMultimediaWidgets import QVideoWidget
-from PyQt6.QtCore import QUrl, Qt 
-from PyQt6.QtGui import QIcon,QPalette
+from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
+from PyQt5.QtMultimediaWidgets import QVideoWidget
+from PyQt5.QtCore import QUrl, Qt 
+from PyQt5.QtGui import QIcon,QPalette
 
 # from scenedetection import SceneDetech
 
-# Issues to address:
-# 1. Not playing audio but only video with mp4
 
 class Media_player(QWidget):
-    def __init__(self):
+    def __init__(self, controller):
         super().__init__()
 
+        self.controller = controller
         self.setWindowTitle("Video Player")
         self.setGeometry(350, 100, 1000 , 700)
+        self.filename = ""
 
         self.init_ui()
 
@@ -74,42 +74,47 @@ class Media_player(QWidget):
         self.media_player.setVideoOutput(video_widget)
 
        # self.media_player.durationChanged.connect(self.duration_changed)
+    
+    def get_file_name(self):
+        return self.filename
+    
+    def video_processed(self, scenes):
+        if self.filename !='':
+            content = QMediaContent(QUrl.fromLocalFile(self.filename))
+            self.media_player.setMedia(content)
 
-    def open_file(self):
-        filename,_ =  QFileDialog.getOpenFileName(self,"Open Video")
-
-        if filename !='':
-            self.media_player.setSource(QUrl.fromLocalFile(filename))
-            # scenedetect = SceneDetech(__file__=filename)
-            # self.scenes = scenedetect.run_scene_detection()
-            self.scenes = {'SCENES': [10000,50000], 
-                            'SHOTS': [20000,60000], 
-                            'SUBSHOTS': [40000]}
+            self.scenes = scenes
+            print(self.scenes)
             self.list = []
             self.merged_time = self.scenes['SCENES'] + self.scenes['SHOTS'] + self.scenes['SUBSHOTS']
             self.merged_time.sort()
-            print(self.merged_time)
             scene_ind = 0
             shot_ind = 0
             subshot_ind = 0
+            shot_num = 1
+            subshot_num = 1
             for item in self.merged_time:
                 if(scene_ind < len(self.scenes['SCENES']) and item == self.scenes['SCENES'][scene_ind]):
                     self.list.append('Scene'+ str(scene_ind+1)) 
                     scene_ind+=1
+                    shot_num = 1
+                    subshot_num = 1
                 elif(shot_ind < len(self.scenes['SHOTS']) and item == self.scenes['SHOTS'][shot_ind]):
-                    self.list.append('  Shot'+ str(shot_ind+1)) 
+                    self.list.append('  Shot'+ str(shot_num)) 
                     shot_ind+=1
+                    shot_num+=1
+                    subshot_num = 1
                 elif(subshot_ind < len(self.scenes['SUBSHOTS']) and item == self.scenes['SUBSHOTS'][subshot_ind]):
-                    self.list.append('      Subshot'+ str(subshot_ind+1)) 
+                    self.list.append('      Subshot'+ str(subshot_num)) 
                     subshot_ind+=1
-            print(self.list)
+                    subshot_num += 1
             self.pageCombo.addItems(self.list)
             self.play_button.setEnabled(True)
-            #self.media_player.play()
             self.media_player.duration()
 
-    
-
+    def open_file(self):
+        self.filename,_ =  QFileDialog.getOpenFileName(self,"Open Video")
+        self.controller.file_name_received()
 
     def play_video(self):
         self.media_player.play()
@@ -127,32 +132,9 @@ class Media_player(QWidget):
         self.stop_button.setEnabled(False)
         self.play_button.setEnabled(True)
 
-
-    # def duration_changed(self, duration):
-    #     self.slider.setRange(0, duration)
-
     def setTime(self):
         pos = self.merged_time[self.pageCombo.currentIndex()]
-        self.media_player.setPosition(pos)
-
-    #     #self.media_player.setVideoOutput(self.video_widget)
-    #     #self.video_widget = QVideoWidget()
-    #     self.media_player.setVideoOutput(self.video_widget)
-    #    # self.media_player.setMedia(QMediaContent(QUrl.fromLocalFile("Video.mp4")))
-    #     self.media_player.positionChanged.connect(self.position_changed)
-    #     self.media_player.durationChanged.connect(self.duration_changed)
-
-    #     container = QWidget()
-    #     container.setLayout(layout)
-    #     self.setCentralWidget(container)
-
-    # def set_position(self, position):
-    #     self.media_player.setPosition(position)
-
-    # def position_changed(self, position):
-    #     self.slider.setValue(position)
-
-   
+        self.media_player.setPosition(pos)   
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
