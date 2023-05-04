@@ -3,6 +3,7 @@ from scenedetect import detect, ThresholdDetector
 from scenedetect import detect, AdaptiveDetector
 import cv2
 import math
+import numpy as np
 from datetime import datetime, timedelta
 
 class VideoSceneDetech:
@@ -10,7 +11,7 @@ class VideoSceneDetech:
         self.video_file_name = video_file_name
 
     def _detech_scene_change_using_detector(self, detector):
-        scenes = detect(self.video_file_name, detector)
+        scenes = detect(self.video_file_name, detector())
         scene_change_points = []
         for scene in scenes:
             scene_change_points.append(scene[1].get_timecode())
@@ -18,13 +19,13 @@ class VideoSceneDetech:
         return scene_change_points
 
     def detech_scene_change_using_content_detector(self):
-        return self._detech_scene_change_using_detector(ContentDetector())
+        return self._detech_scene_change_using_detector(ContentDetector)
 
     def detech_scene_change_using_threshold_detector(self):
-        return self._detech_scene_change_using_detector(ThresholdDetector())
+        return self._detech_scene_change_using_detector(ThresholdDetector)
 
     def detech_scene_change_using_adaptive_detector(self):
-        return self._detech_scene_change_using_detector(AdaptiveDetector(min_scene_len=2))
+        return self._detech_scene_change_using_detector(AdaptiveDetector)
 
     @staticmethod
     def add_seconds_to_time_object(time_object, seconds):
@@ -74,70 +75,79 @@ class VideoSceneDetech:
         video.release()
         return frames
 
-    # Compare two histograms using the specified method
     def compare_histograms(self, hist1, hist2, method=cv2.HISTCMP_CORREL):
         similarity = cv2.compareHist(hist1, hist2, method)
         return similarity
 
-    # Compute color histogram similarities for consecutive frames in the video
-    def compute_color_histogram_similarity(self, video, num_bins=128):
+
+    def split_frame_into_macroblocks(self, frame, macroblock_size=96):
+        height, width, _ = frame.shape
+        macroblocks = []
+
+        for y in range(0, height, macroblock_size):
+            for x in range(0, width, macroblock_size):
+                macroblock = frame[y:y + macroblock_size, x:x + macroblock_size]
+                macroblocks.append(macroblock)
+
+        return macroblocks
+
+    def compute_combined_motion_vector_histogram_similarity(self, video, num_bins=16, macroblock_size=96,
+                                                            combined_weight=0.9):
         similarities = []
+
         for i in range(len(video) - 1):
             frame1 = video[i]
             frame2 = video[i + 1]
 
-            hist1 = cv2.calcHist([frame1], [0, 1, 2], None, [num_bins, num_bins, num_bins], [0, 256, 0, 256, 0, 256])
-            hist2 = cv2.calcHist([frame2], [0, 1, 2], None, [num_bins, num_bins, num_bins], [0, 256, 0, 256, 0, 256])
+            macroblocks1 = self.split_frame_into_macroblocks(frame1, macroblock_size)
+            macroblocks2 = self.split_frame_into_macroblocks(frame2, macroblock_size)
 
-            similarity = self.compare_histograms(hist1, hist2)
-            similarities.append(similarity)
+            macroblock_similarities = []
+
+            for mb1, mb2 in zip(macroblocks1, macroblocks2):
+                hist1 = cv2.calcHist([mb1], [0, 1, 2], None, [num_bins, num_bins, num_bins], [0, 256, 0, 256, 0, 256])
+                hist2 = cv2.calcHist([mb2], [0, 1, 2], None, [num_bins, num_bins, num_bins], [0, 256, 0, 256, 0, 256])
+
+                flow = cv2.calcOpticalFlowFarneback(cv2.cvtColor(mb1, cv2.COLOR_BGR2GRAY),
+                                                    cv2.cvtColor(mb2, cv2.COLOR_BGR2GRAY), None, 0.5, 3, 15, 3, 5, 1.2,
+                                                    0)
+                magnitude, _ = cv2.cartToPolar(flow[..., 0], flow[..., 1])
+
+                similarity = self.compare_histograms(hist1, hist2)
+                motion_similarity = np.mean(magnitude)
+
+                macroblock_similarities.append((similarity, motion_similarity))
+
+            average_similarity = np.mean([sim[0] for sim in macroblock_similarities])
+            average_motion_similarity = np.mean([sim[1] for sim in macroblock_similarities])
+
+            final_similarity = (1 - combined_weight) * average_similarity + combined_weight * average_motion_similarity
+            similarities.append(final_similarity)
 
         return similarities
 
-
-    # Calculate the entropy difference between time windows before and after the given timestamp
     def entropy_difference(self, timestamps, window_size=2):
-        video = cv2.VideoCapture(self.video_file_name)
 
         entropy_differences = []
 
-        # Loop through the provided timestamps
         for timestamp in timestamps:
-            # Define time windows
             current_time = self.convert_to_seconds(timestamp)
             start_time1 = current_time - window_size
             end_time1 = current_time
             start_time2 = current_time
             end_time2 = current_time + window_size
 
-            # Get video frames for each time window
             video_window1 = self.video_frames_in_time_window(self.video_file_name, start_time1, end_time1)
             video_window2 = self.video_frames_in_time_window(self.video_file_name, start_time2, end_time2)
 
-            # Calculate color histogram similarities for each time window
-            similarities_window1 = self.compute_color_histogram_similarity(video_window1)
-            similarities_window2 = self.compute_color_histogram_similarity(video_window2)
+            similarities_window1 = self.compute_combined_motion_vector_histogram_similarity(video_window1)
+            similarities_window2 = self.compute_combined_motion_vector_histogram_similarity(video_window2)
 
-            # Calculate the average similarity for each time window
             avg_window1 = sum(similarities_window1) / len(similarities_window1) if len(similarities_window1) > 0 else 0
             avg_window2 = sum(similarities_window2) / len(similarities_window2) if len(similarities_window2) > 0 else 0
 
-            # Calculate the entropy for each time window
-            entropy_window1 = -avg_window1 * math.log2(avg_window1) if avg_window1 > 0 else 0
-            entropy_window2 = -avg_window2 * math.log2(avg_window2) if avg_window2 > 0 else 0
+            similarity_diff = abs(avg_window1 - avg_window2)
 
-            # Calculate the entropy difference between the two time windows
-            entropy_diff = abs(entropy_window1 - entropy_window2)
+            entropy_differences.append(similarity_diff)
 
-            entropy_differences.append(entropy_diff)
-
-            # Print results for debugging purposes
-            # print(f"Timestamp: {timestamp}")
-            # print(f"Time Window 1: {start_time1:.2f} - {end_time1:.2f}")
-            # print(f"Similarities Window 1: {similarities_window1}")
-            # print(f"Time Window 2: {start_time2:.2f} - {end_time2:.2f}")
-            # print(f"Similarities Window 2: {similarities_window2}")
-            # print(f"Entropy Difference: {entropy_diff:.4f}")
-            # print("---------------------------------------------------------")
-        
         return entropy_differences
