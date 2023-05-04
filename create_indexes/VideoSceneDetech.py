@@ -1,6 +1,7 @@
 from scenedetect import detect, ContentDetector
 from scenedetect import detect, ThresholdDetector
 from scenedetect import detect, AdaptiveDetector
+import concurrent.futures
 import cv2
 import math
 import numpy as np
@@ -92,6 +93,38 @@ class VideoSceneDetech:
 
         return macroblocks
 
+    def filter_nearby_timestamps(self, timestamps, min_difference=1):
+        filtered_timestamps = []
+        prev_timestamp = None
+
+        for timestamp in timestamps:
+            if prev_timestamp is None:
+                filtered_timestamps.append(timestamp)
+                prev_timestamp = timestamp
+            else:
+                timestamp_seconds = self.convert_to_seconds(timestamp)
+                prev_timestamp_seconds = self.convert_to_seconds(prev_timestamp)
+
+                if abs(timestamp_seconds - prev_timestamp_seconds) >= min_difference:
+                    filtered_timestamps.append(timestamp)
+                    prev_timestamp = timestamp
+
+        return filtered_timestamps
+
+    def compute_macroblock_similarity(self, mb1, mb2, num_bins):
+        hist1 = cv2.calcHist([mb1], [0, 1, 2], None, [num_bins, num_bins, num_bins], [0, 256, 0, 256, 0, 256])
+        hist2 = cv2.calcHist([mb2], [0, 1, 2], None, [num_bins, num_bins, num_bins], [0, 256, 0, 256, 0, 256])
+
+        flow = cv2.calcOpticalFlowFarneback(cv2.cvtColor(mb1, cv2.COLOR_BGR2GRAY),
+                                            cv2.cvtColor(mb2, cv2.COLOR_BGR2GRAY), None, 0.5, 3, 15, 3, 5, 1.2,
+                                            0)
+        magnitude, _ = cv2.cartToPolar(flow[..., 0], flow[..., 1])
+
+        similarity = self.compare_histograms(hist1, hist2)
+        motion_similarity = np.mean(magnitude)
+
+        return (similarity, motion_similarity)
+
     def compute_combined_motion_vector_histogram_similarity(self, video, num_bins=16, macroblock_size=96,
                                                             combined_weight=0.8):
         similarities = []
@@ -105,19 +138,12 @@ class VideoSceneDetech:
 
             macroblock_similarities = []
 
-            for mb1, mb2 in zip(macroblocks1, macroblocks2):
-                hist1 = cv2.calcHist([mb1], [0, 1, 2], None, [num_bins, num_bins, num_bins], [0, 256, 0, 256, 0, 256])
-                hist2 = cv2.calcHist([mb2], [0, 1, 2], None, [num_bins, num_bins, num_bins], [0, 256, 0, 256, 0, 256])
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                futures = [executor.submit(self.compute_macroblock_similarity, mb1, mb2, num_bins) for mb1, mb2 in
+                           zip(macroblocks1, macroblocks2)]
 
-                flow = cv2.calcOpticalFlowFarneback(cv2.cvtColor(mb1, cv2.COLOR_BGR2GRAY),
-                                                    cv2.cvtColor(mb2, cv2.COLOR_BGR2GRAY), None, 0.5, 3, 15, 3, 5, 1.2,
-                                                    0)
-                magnitude, _ = cv2.cartToPolar(flow[..., 0], flow[..., 1])
-
-                similarity = self.compare_histograms(hist1, hist2)
-                motion_similarity = np.mean(magnitude)
-
-                macroblock_similarities.append((similarity, motion_similarity))
+                for future in concurrent.futures.as_completed(futures):
+                    macroblock_similarities.append(future.result())
 
             average_similarity = np.mean([sim[0] for sim in macroblock_similarities])
             average_motion_similarity = np.mean([sim[1] for sim in macroblock_similarities])
