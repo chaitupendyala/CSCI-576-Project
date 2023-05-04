@@ -21,8 +21,14 @@ class AudioSceneDetech:
         signal_before = self.audio[before_index:time_index]
         signal_after = self.audio[time_index:after_index]
 
-        entropy_before = entropy(np.abs(signal_before))
-        entropy_after = entropy(np.abs(signal_after))
+        S_signal_before = librosa.feature.melspectrogram(y=signal_before, sr= self.sr, n_mels=128,fmax=8000)
+        S_f_before = S_signal_before.flatten()
+
+        S_signal_after = librosa.feature.melspectrogram(y=signal_after, sr= self.sr, n_mels=128,fmax=8000)
+        S_f_after = S_signal_after.flatten()
+
+        entropy_before = entropy(S_f_before)
+        entropy_after = entropy(S_f_after)
 
         entropy_difference = abs(entropy_after - entropy_before)
 
