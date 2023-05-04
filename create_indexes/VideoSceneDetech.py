@@ -5,6 +5,7 @@ import cv2
 import math
 import numpy as np
 from datetime import datetime, timedelta
+import multiprocessing
 
 class VideoSceneDetech:
     def __init__(self, video_file_name=None):
@@ -126,28 +127,30 @@ class VideoSceneDetech:
 
         return similarities
 
+    def entropy_difference_single_thresded(self, timestamp):
+        window_size = 2
+        current_time = self.convert_to_seconds(timestamp)
+        start_time1 = current_time - window_size
+        end_time1 = current_time
+        start_time2 = current_time
+        end_time2 = current_time + window_size
+
+        video_window1 = self.video_frames_in_time_window(self.video_file_name, start_time1, end_time1)
+        video_window2 = self.video_frames_in_time_window(self.video_file_name, start_time2, end_time2)
+
+        similarities_window1 = self.compute_combined_motion_vector_histogram_similarity(video_window1)
+        similarities_window2 = self.compute_combined_motion_vector_histogram_similarity(video_window2)
+
+        avg_window1 = sum(similarities_window1) / len(similarities_window1) if len(similarities_window1) > 0 else 0
+        avg_window2 = sum(similarities_window2) / len(similarities_window2) if len(similarities_window2) > 0 else 0
+
+        similarity_diff = abs(avg_window1 - avg_window2)
+
+        return similarity_diff
+
     def entropy_difference(self, timestamps, window_size=2):
+        pool = multiprocessing.Pool()
 
-        entropy_differences = []
-
-        for timestamp in timestamps:
-            current_time = self.convert_to_seconds(timestamp)
-            start_time1 = current_time - window_size
-            end_time1 = current_time
-            start_time2 = current_time
-            end_time2 = current_time + window_size
-
-            video_window1 = self.video_frames_in_time_window(self.video_file_name, start_time1, end_time1)
-            video_window2 = self.video_frames_in_time_window(self.video_file_name, start_time2, end_time2)
-
-            similarities_window1 = self.compute_combined_motion_vector_histogram_similarity(video_window1)
-            similarities_window2 = self.compute_combined_motion_vector_histogram_similarity(video_window2)
-
-            avg_window1 = sum(similarities_window1) / len(similarities_window1) if len(similarities_window1) > 0 else 0
-            avg_window2 = sum(similarities_window2) / len(similarities_window2) if len(similarities_window2) > 0 else 0
-
-            similarity_diff = abs(avg_window1 - avg_window2)
-
-            entropy_differences.append(similarity_diff)
+        entropy_differences = pool.map(self.entropy_difference_single_thresded, timestamps)
 
         return entropy_differences
