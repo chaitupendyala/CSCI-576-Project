@@ -84,7 +84,20 @@ class Media_player(QWidget):
             self.media_player.setMedia(content)
 
             self.scenes = scenes
-            print(self.scenes)
+            self.scenes_ms = {}
+            for key in self.scenes:
+                self.scenes_ms[key]=[]
+                for time in self.scenes[key]:
+                    hours, minutes, seconds = time.split(':')
+                    seconds, milliseconds = seconds.split('.')
+
+                    hours_in_ms = int(hours) * 60 * 60 * 1000
+                    minutes_in_ms = int(minutes) * 60 * 1000
+                    seconds_in_ms = int(seconds) * 1000
+                    milliseconds = int(milliseconds)
+                    total_ms = hours_in_ms + minutes_in_ms + seconds_in_ms + milliseconds
+                    self.scenes_ms[key].append(total_ms)
+            self.scenes = self.scenes_ms
             self.list = []
             self.merged_time = self.scenes['SCENES'] + self.scenes['SHOTS'] + self.scenes['SUBSHOTS']
             self.merged_time.sort()
